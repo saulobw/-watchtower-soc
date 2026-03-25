@@ -1,0 +1,22 @@
+# Credenciales y secretos — NUNCA subir a GitHub
+.env
+*.env
+secrets/
+docker/wazuh/certs/*.pem
+docker/wazuh/certs/*.key
+
+# Reportes generados (pueden contener PII de los simulacros)
+reports/*.pdf
+reports/*.html
+
+# Archivos de Python compilados (no son código fuente)
+__pycache__/
+*.pyc
+*.pyo
+
+# Archivos de sistema operativo
+.DS_Store
+Thumbs.db
+
+# Logs locales
+*.log
