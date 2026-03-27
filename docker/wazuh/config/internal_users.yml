@@ -1,0 +1,62 @@
+# ============================================================
+# WATCHTOWER SOC PLATFORM v3.0
+# Archivo: internal_users.yml
+# Descripción: Usuarios del Wazuh Indexer (OpenSearch)
+# IMPORTANTE: Las contraseñas están hasheadas con bcrypt
+# Contraseña real: SecurePassword123!
+# ============================================================
+
+_meta:
+  type: "internalusers"
+  config_version: 2
+
+# Usuario administrador principal
+# Tiene acceso total al Indexer
+admin:
+  hash: "$2y$12$K/SpwjtB.wOHJ/Nc6GVpDOzizvoNoMne2h0lifNBwhB0k24O8T8OC"
+  reserved: true
+  backend_roles:
+    - "admin"
+  description: "SOC Admin - Full access to Wazuh Indexer"
+
+# Usuario para el Dashboard de Wazuh
+# Solo tiene permisos de lectura para mostrar alertas
+kibanaserver:
+  hash: "$2y$12$4AcgAt3udzAgcAHkVCPjFeOS7TwqH9KZuQFm1tFXqMJ3QEeLg.5FC"
+  reserved: true
+  description: "Wazuh Dashboard internal user"
+
+# Usuario para el servicio de Filebeat
+# Filebeat es quien envía los logs al Indexer
+kibanaro:
+  hash: "$2y$12$JJSXNfTowz7Uu5ttXfeYpeYE0arACucwlPR2WyCnwDQFTGJHAFjqO"
+  reserved: false
+  backend_roles:
+    - "kibanauser"
+    - "readall"
+  description: "Read-only user for dashboard"
+
+# Usuario para el Wazuh Manager (envío de alertas al Indexer)
+logstash:
+  hash: "$2y$12$u1ShR4l4uBS3Uv59x2let.2upVLiMm2OBDgkAB1Tbvnb1bRgXBFCG"
+  reserved: false
+  backend_roles:
+    - "logstash"
+  description: "Wazuh Manager to Indexer communication"
+
+# Usuario de solo lectura para integraciones externas
+# (Grafana, scripts de reporting, etc.)
+readall:
+  hash: "$2y$12$ae4ycwzwvLtZxwZ82RmiEunBbIPjsBqUBBYjOuXxBbMKlQnMHEMEe"
+  reserved: false
+  backend_roles:
+    - "readall"
+  description: "Read-only for external integrations (Grafana, reports)"
+
+# Usuario para snapshots (backups automáticos del Indexer)
+snapshotrestore:
+  hash: "$2y$12$oClDe4WT//4iRyjfLBzIB.2v4lHzTDqYM5hSXjBbYT9NBY6NZGM6"
+  reserved: false
+  backend_roles:
+    - "snapshotrestore"
+  description: "Backup and restore operations"

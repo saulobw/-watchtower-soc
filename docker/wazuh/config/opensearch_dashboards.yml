@@ -1,0 +1,39 @@
+# ============================================================
+# WATCHTOWER SOC PLATFORM v3.0
+# Archivo: opensearch_dashboards.yml
+# Descripción: Configuración del Wazuh Dashboard (UI)
+# ============================================================
+
+# URL del Indexer al que se conecta el Dashboard
+# Usa HTTPS (puerto 9200) para comunicación segura
+opensearch.hosts: https://wazuh.indexer:9200
+
+# Puerto en el que escucha el Dashboard
+# Internamente usa 5601, externamente lo mapeamos a 443
+server.port: 5601
+
+# Acepta conexiones de cualquier IP dentro de la red Docker
+server.host: 0.0.0.0
+
+# Nombre que aparece en el título del navegador
+server.name: "Watchtower SOC Dashboard"
+
+# Credenciales para que el Dashboard se autentique al Indexer
+opensearch.username: kibanaserver
+opensearch.password: kibanaserver
+
+# No verificar SSL dentro de la red Docker interna
+# (los certificados son auto-firmados para el lab)
+opensearch.ssl.verificationMode: certificate
+opensearch.requestHeadersAllowlist:
+  - authorization
+  - securitytenant
+
+# Plugin de seguridad de OpenSearch habilitado
+opensearch_security.multitenancy.enabled: false
+opensearch_security.readonly_mode.roles:
+  - kibana_read_only
+
+# Configuración del plugin Wazuh
+# Conecta el Dashboard con la API del Manager
+uiSettings.overrides.defaultRoute: /app/wazuh
