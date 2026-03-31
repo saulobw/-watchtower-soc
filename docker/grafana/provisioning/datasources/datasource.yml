@@ -1,0 +1,46 @@
+# ============================================================
+# WATCHTOWER SOC PLATFORM v3.0
+# Archivo: grafana/provisioning/datasources/datasource.yml
+# Descripción: Fuentes de datos de Grafana
+# "Provisioning" = configuración automática al arrancar
+# ============================================================
+
+apiVersion: 1
+
+datasources:
+
+  # ── FUENTE 1: Prometheus ──────────────────────
+  # La fuente principal de métricas de infraestructura
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    # URL interna dentro de la red Docker
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      # Cada cuánto Grafana refresca los datos del dashboard
+      timeInterval: "15s"
+      # Habilita el soporte para queries de ejemplos
+      exemplarTraceIdDestinations: []
+    version: 1
+
+  # ── FUENTE 2: Base de Datos Nexus (PostgreSQL) ─
+  # Conexión directa a la DB para métricas de negocio
+  # (clientes activos, transacciones, logins fallidos)
+  - name: NexusFintech-DB
+    type: postgres
+    url: nexus-db:5432
+    database: nexus_fintech
+    user: nexus_user
+    editable: false
+    jsonData:
+      sslmode: 'disable'
+      maxOpenConns: 5
+      maxIdleConns: 5
+      connMaxLifetime: 14400
+      postgresVersion: 1500
+      timescaledb: false
+    secureJsonData:
+      password: 'NexusDB2024!'
+    version: 1

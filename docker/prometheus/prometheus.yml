@@ -1,0 +1,94 @@
+# ============================================================
+# WATCHTOWER SOC PLATFORM v3.0
+# Archivo: prometheus/prometheus.yml
+# Descripción: Configuración de recolección de métricas
+# ============================================================
+
+global:
+  # Cada cuánto tiempo Prometheus "pregunta" a cada servicio
+  # sus métricas. 15 segundos es el estándar en producción.
+  scrape_interval: 15s
+
+  # Cada cuánto evalúa las reglas de alerta
+  evaluation_interval: 15s
+
+  # Etiqueta que se añade a TODAS las métricas
+  # Útil para identificar de qué entorno vienen los datos
+  external_labels:
+    environment: 'watchtower-soc-lab'
+    project: 'watchtower-soc'
+
+# ──────────────────────────────────────────────
+# JOBS DE SCRAPING (servicios a monitorear)
+# Cada "job" es un grupo de servicios del mismo tipo
+# ──────────────────────────────────────────────
+scrape_configs:
+
+  # ── JOB 1: El propio Prometheus ──────────────
+  # Prometheus se monitorea a sí mismo
+  # Métricas: velocidad de scraping, uso de memoria, etc.
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+          tier: 'observability'
+
+  # ── JOB 2: Nexus Fintech App ─────────────────
+  # Monitorea la app bancaria simulada
+  # El endpoint /health nos dice si está viva
+  # Métricas: requests/segundo, errores, latencia
+  - job_name: 'nexus-app'
+    metrics_path: '/health'
+    static_configs:
+      - targets: ['nexus-app:8080']
+        labels:
+          service: 'nexus-fintech-api'
+          tier: 'application'
+          criticality: 'high'
+
+  # ── JOB 3: Wazuh Manager ─────────────────────
+  # Monitorea el cerebro del SIEM
+  # Puerto 55000: API REST del Manager
+  - job_name: 'wazuh-manager'
+    metrics_path: '/metrics'
+    scheme: 'https'
+    tls_config:
+      insecure_skip_verify: true
+    basic_auth:
+      username: 'wazuh-wui'
+      password: 'MyS3cr37P450r.*-'
+    static_configs:
+      - targets: ['wazuh.manager:55000']
+        labels:
+          service: 'wazuh-manager'
+          tier: 'security'
+          criticality: 'critical'
+
+  # ── JOB 4: Wazuh Indexer (OpenSearch) ────────
+  # Monitorea la base de datos de alertas
+  # Métricas: espacio en disco, índices, velocidad de indexado
+  - job_name: 'wazuh-indexer'
+    metrics_path: '/_prometheus/metrics'
+    scheme: 'https'
+    tls_config:
+      insecure_skip_verify: true
+    basic_auth:
+      username: 'admin'
+      password: 'SecurePassword123!'
+    static_configs:
+      - targets: ['wazuh.indexer:9200']
+        labels:
+          service: 'wazuh-indexer'
+          tier: 'security'
+          criticality: 'critical'
+
+  # ── JOB 5: Grafana ───────────────────────────
+  # Grafana también expone sus propias métricas
+  # Métricas: usuarios activos, dashboards cargados, errores
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+        labels:
+          service: 'grafana'
+          tier: 'observability'

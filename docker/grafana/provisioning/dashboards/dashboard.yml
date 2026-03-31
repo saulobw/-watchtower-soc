@@ -1,0 +1,25 @@
+# ============================================================
+# WATCHTOWER SOC PLATFORM v3.0
+# Archivo: grafana/provisioning/dashboards/dashboard.yml
+# Descripción: Configuración de carga automática de dashboards
+# ============================================================
+
+apiVersion: 1
+
+providers:
+
+  # Proveedor principal de dashboards
+  - name: 'Watchtower SOC Dashboards'
+    orgId: 1
+    # Carpeta donde aparecerán en la UI de Grafana
+    folder: 'SOC Platform'
+    folderUid: 'soc-platform'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      # Ruta dentro del contenedor Grafana donde
+      # busca los archivos JSON de dashboards
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: true

@@ -1,0 +1,12 @@
+# ============================================================
+# WATCHTOWER SOC PLATFORM v3.0
+# Archivo: nexus-app/requirements.txt
+# Descripción: Dependencias Python de la app Nexus Fintech
+# ============================================================
+
+flask==3.0.0          # Framework web para crear la API REST
+psycopg2-binary==2.9.9 # Conector Python <-> PostgreSQL
+faker==22.0.0         # Genera datos falsos realistas (nombres, tarjetas)
+python-dotenv==1.0.0  # Lee variables de entorno desde archivo .env
+requests==2.31.0      # Para hacer llamadas HTTP (Threat Intel APIs)
+gunicorn==21.2.0      # Servidor web de producción (más robusto que Flask dev)
