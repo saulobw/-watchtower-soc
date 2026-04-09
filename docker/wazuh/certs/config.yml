@@ -1,0 +1,26 @@
+# ============================================================
+# WATCHTOWER SOC PLATFORM v3.0
+# Archivo: docker/wazuh/certs/config.yml
+# Descripción: Define los nodos para los que se generarán
+#              certificados TLS. Cada componente Wazuh
+#              necesita su propio certificado de identidad.
+# ============================================================
+
+nodes:
+
+  # Certificado para el Indexer (OpenSearch)
+  # El "name" debe coincidir EXACTAMENTE con el hostname
+  # del contenedor definido en docker-compose.yml
+  indexer:
+    - name: wazuh.indexer
+      ip: wazuh.indexer
+
+  # Certificado para el Manager (el cerebro del SIEM)
+  server:
+    - name: wazuh.manager
+      ip: wazuh.manager
+
+  # Certificado para el Dashboard (la interfaz visual)
+  dashboard:
+    - name: wazuh.dashboard
+      ip: wazuh.dashboard
