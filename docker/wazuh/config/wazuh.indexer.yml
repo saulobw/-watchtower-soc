@@ -51,4 +51,4 @@ plugins.security.nodes_dn:
   - "CN=wazuh.indexer,OU=Wazuh,O=Wazuh,L=California,C=US"
 
 plugins.security.authcz.admin_dn:
-  - "CN=admin,OU=Wazuh,O=Wazuh,L=California,C=US"
+  - "CN=admin,OU=SOC,O=Wazuh,L=Santa Clara,ST=California,C=US"

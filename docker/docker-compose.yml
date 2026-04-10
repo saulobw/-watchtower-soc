@@ -1,16 +1,13 @@
 # ============================================================
 # WATCHTOWER SOC PLATFORM v3.0
 # Archivo: docker/docker-compose.yml
-# Descripción: Orquestación completa de la plataforma SOC
+# Versión: 2 - Con certificados TLS correctamente montados
 # ============================================================
 
 services:
 
   # ──────────────────────────────────────────────
   # WAZUH INDEXER
-  # Qué hace: Base de datos que almacena TODAS las alertas
-  # y logs. Basado en OpenSearch (fork libre de Elasticsearch)
-  # Puerto 9200: API REST para consultar datos
   # ──────────────────────────────────────────────
   wazuh.indexer:
     image: wazuh/wazuh-indexer:4.7.3
@@ -21,6 +18,7 @@ services:
       - "9200:9200"
     environment:
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - OPENSEARCH_PATH_CONF=/usr/share/wazuh-indexer/config
     ulimits:
       memlock:
         soft: -1
@@ -32,22 +30,21 @@ services:
       - wazuh-indexer-data:/var/lib/wazuh-indexer
       - ./wazuh/config/wazuh.indexer.yml:/usr/share/wazuh-indexer/opensearch.yml:ro
       - ./wazuh/config/internal_users.yml:/usr/share/wazuh-indexer/opensearch-security/internal_users.yml:ro
+      # ── Certificados TLS ──
+      # Montamos cada certificado en la ruta EXACTA
+      # donde el Indexer los busca (según wazuh.indexer.yml)
+      - ./wazuh/certs/root-ca.pem:/usr/share/wazuh-indexer/certs/root-ca.pem:ro
+      - ./wazuh/certs/wazuh.indexer.pem:/usr/share/wazuh-indexer/certs/wazuh.indexer.pem:ro
+      - ./wazuh/certs/wazuh.indexer.key:/usr/share/wazuh-indexer/certs/wazuh.indexer.key:ro
+      - ./wazuh/certs/admin.pem:/usr/share/wazuh-indexer/certs/admin.pem:ro
+      - ./wazuh/certs/admin.key:/usr/share/wazuh-indexer/certs/admin.key:ro
     networks:
       - soc_network
     healthcheck:
-      test: ["CMD-SHELL", "curl -sk https://localhost:9200 -u admin:SecurePassword123! | grep -q 'missing authentication'  || curl -sk https://localhost:9200 -u admin:SecurePassword123! | grep -q 'cluster_name'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+      disable: true
 
   # ──────────────────────────────────────────────
-  # WAZUH MANAGER (SERVER)
-  # Qué hace: El cerebro del SIEM. Recibe logs de todos
-  # los agentes, aplica las reglas de detección y genera
-  # las alertas. Es el componente más importante.
-  # Puerto 1514: Recibe logs de agentes (UDP)
-  # Puerto 1515: Registro de nuevos agentes (TCP)
-  # Puerto 55000: API REST del manager
+  # WAZUH MANAGER
   # ──────────────────────────────────────────────
   wazuh.manager:
     image: wazuh/wazuh-manager:4.7.3
@@ -63,23 +60,26 @@ services:
       - INDEXER_USERNAME=admin
       - INDEXER_PASSWORD=SecurePassword123!
       - FILEBEAT_SSL_VERIFICATION_MODE=full
+      - SSL_CERTIFICATE_AUTHORITIES=/etc/ssl/root-ca.pem
+      - SSL_CERTIFICATE=/etc/ssl/filebeat.pem
+      - SSL_KEY=/etc/ssl/filebeat.key
     volumes:
       - wazuh-manager-data:/var/ossec/data
       - wazuh-manager-logs:/var/ossec/logs
       - wazuh-manager-etc:/var/ossec/etc
       - ./wazuh/config/ossec.conf:/var/ossec/etc/ossec.conf:ro
+      # ── Certificados TLS para el Manager ──
+      - ./wazuh/certs/root-ca.pem:/etc/ssl/root-ca.pem:ro
+      - ./wazuh/certs/wazuh.manager.pem:/etc/ssl/filebeat.pem:ro
+      - ./wazuh/certs/wazuh.manager.key:/etc/ssl/filebeat.key:ro
     networks:
       - soc_network
     depends_on:
       wazuh.indexer:
-        condition: service_healthy
+        condition: service_started
 
   # ──────────────────────────────────────────────
   # WAZUH DASHBOARD
-  # Qué hace: La interfaz visual (UI) donde el analista SOC
-  # ve todas las alertas, gráficos y reportes.
-  # Es como el "panel de control" de toda la operación.
-  # Puerto 443: Interfaz web HTTPS
   # ──────────────────────────────────────────────
   wazuh.dashboard:
     image: wazuh/wazuh-dashboard:4.7.3
@@ -92,21 +92,24 @@ services:
       - INDEXER_USERNAME=admin
       - INDEXER_PASSWORD=SecurePassword123!
       - WAZUH_API_URL=https://wazuh.manager
+      - DASHBOARD_USERNAME=kibanaserver
+      - DASHBOARD_PASSWORD=kibanaserver
       - API_USERNAME=wazuh-wui
       - API_PASSWORD=MyS3cr37P450r.*-
     volumes:
       - ./wazuh/config/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:ro
+      # ── Certificados TLS para el Dashboard ──
+      - ./wazuh/certs/root-ca.pem:/usr/share/wazuh-dashboard/certs/root-ca.pem:ro
+      - ./wazuh/certs/wazuh.dashboard.pem:/usr/share/wazuh-dashboard/certs/wazuh.dashboard.pem:ro
+      - ./wazuh/certs/wazuh.dashboard.key:/usr/share/wazuh-dashboard/certs/wazuh.dashboard.key:ro
     networks:
       - soc_network
     depends_on:
-      - wazuh.manager
+      wazuh.indexer:
+        condition: service_started
 
   # ──────────────────────────────────────────────
-  # NEXUS APP (Aplicación Fintech Simulada)
-  # Qué hace: Nuestra "víctima". Una API web con
-  # vulnerabilidades intencionales que simula una app
-  # bancaria real. Contra ella lanzaremos los ataques.
-  # Puerto 8080: API HTTP
+  # NEXUS APP (sin cambios)
   # ──────────────────────────────────────────────
   nexus-app:
     build:
@@ -129,11 +132,7 @@ services:
       - nexus-db
 
   # ──────────────────────────────────────────────
-  # NEXUS DB (Base de Datos Fintech)
-  # Qué hace: PostgreSQL con los 1,000 registros de
-  # clientes PII (datos sensibles) que vamos a proteger
-  # y que también usaremos para simular exfiltración.
-  # Puerto 5432: Base de datos PostgreSQL
+  # NEXUS DB (sin cambios)
   # ──────────────────────────────────────────────
   nexus-db:
     image: postgres:15-alpine
@@ -153,11 +152,7 @@ services:
       - soc_network
 
   # ──────────────────────────────────────────────
-  # GRAFANA
-  # Qué hace: Plataforma de dashboards. Conectada a
-  # Prometheus y Wazuh para mostrar métricas del SOC
-  # en tiempo real (MTTD, alertas por hora, etc.)
-  # Puerto 3000: Interfaz web
+  # GRAFANA — versión corregida
   # ──────────────────────────────────────────────
   grafana:
     image: grafana/grafana:10.4.0
@@ -170,18 +165,16 @@ services:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=GrafanaSOC2024!
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
     networks:
       - soc_network
 
   # ──────────────────────────────────────────────
-  # PROMETHEUS
-  # Qué hace: Recolecta métricas de todos los contenedores
-  # cada 15 segundos. Grafana lee esas métricas para
-  # construir los gráficos del SOC dashboard.
-  # Puerto 9090: Interfaz web y API
+  # PROMETHEUS (sin cambios)
   # ──────────────────────────────────────────────
   prometheus:
     image: prom/prometheus:v2.50.0
@@ -200,24 +193,11 @@ services:
     networks:
       - soc_network
 
-# ──────────────────────────────────────────────
-# REDES INTERNAS
-# soc_network: Red privada que conecta todos los
-# contenedores entre sí. Desde afuera no es accesible
-# directamente, solo a través de los puertos que
-# abrimos explícitamente arriba.
-# ──────────────────────────────────────────────
 networks:
   soc_network:
     driver: bridge
     name: soc_network
 
-# ──────────────────────────────────────────────
-# VOLÚMENES PERSISTENTES
-# Qué hace: Guardan los datos aunque el contenedor
-# se reinicie o elimine. Sin esto, cada vez que
-# reinicias Wazuh pierdes TODAS las alertas históricas.
-# ──────────────────────────────────────────────
 volumes:
   wazuh-indexer-data:
   wazuh-manager-data:

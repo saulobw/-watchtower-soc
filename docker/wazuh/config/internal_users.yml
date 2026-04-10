@@ -13,7 +13,7 @@ _meta:
 # Usuario administrador principal
 # Tiene acceso total al Indexer
 admin:
-  hash: "$2y$12$K/SpwjtB.wOHJ/Nc6GVpDOzizvoNoMne2h0lifNBwhB0k24O8T8OC"
+  hash: "$2b$12$3xT4HesnKFyuYP0XjbDi2ev4dQLWnt3/DbokhU0adZO1NUO2HOxW2"
   reserved: true
   backend_roles:
     - "admin"
